@@ -42,7 +42,7 @@ loop.create_task(main())
 client = TelegramClient("Cleaner", args.api_id, args.api_hash, loop=loop)
 
 
-@client.on(events.NewMessage(pattern=r'(?i)^\/(achievements|drochnut|topd|topdall|topdd|help|dice|case|use|keys)'))
+@client.on(events.NewMessage(pattern=r'(?i)^\/(achievements|drochnut|topd|topdall|topdd|help|dice|case|use|keys|shop|trande|bonuscode|inventory)'))
 async def user_command_handler(event):
     messages_to_delete.append({
         "message": event.message.id,
