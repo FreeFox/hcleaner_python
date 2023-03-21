@@ -1,2 +1,2 @@
-Telethon
+Telethon==1.24.0
 asyncio-periodic~=2019.2
