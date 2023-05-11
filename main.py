@@ -37,8 +37,9 @@ async def main():
     await p.start()
 
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 loop.create_task(main())
+asyncio.set_event_loop(loop)
 client = TelegramClient("Cleaner", args.api_id, args.api_hash, loop=loop)
 
 
