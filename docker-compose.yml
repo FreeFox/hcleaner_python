@@ -1,0 +1,9 @@
+services:
+  hcleaner:
+    build: .
+    environment:
+      - API_ID=${API_ID}
+      - API_HASH=${API_HASH}
+    volumes:
+      - ./sessions:/app/sessions
+    restart: unless-stopped

@@ -40,14 +40,14 @@ async def main():
 loop = asyncio.new_event_loop()
 loop.create_task(main())
 asyncio.set_event_loop(loop)
-client = TelegramClient("Cleaner", args.api_id, args.api_hash, loop=loop)
+client = TelegramClient("sessions/Cleaner", args.api_id, args.api_hash, loop=loop)
 
 
 @client.on(events.NewMessage(pattern=r'(?i)^\/(achievements|drochnut|topd|topdall|topdd|help|dice|craft|case|use|keys|shop|trade|me|bonuscode|inventory|newcase|rr|give|donate|dick|top)'))
 async def user_command_handler(event):
     messages_to_delete.append({
         "message": event.message.id,
-        "chat": event.chat.id,
+        "chat": event.chat_id,
         "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S")
     })
     print("[New event] Queue size: ", str(len(messages_to_delete)), " item(s)")
@@ -57,7 +57,7 @@ async def user_command_handler(event):
 async def bot_message_handler(event):
     messages_to_delete.append({
         "message": event.message.id,
-        "chat": event.chat.id,
+        "chat": event.chat_id,
         "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S")
     })
     print("[New event] Queue size: ", str(len(messages_to_delete)), " item(s)")

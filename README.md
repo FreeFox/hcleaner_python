@@ -19,6 +19,23 @@ $ nano config/config.py
 $ python3 main.py
 ```
 
+### Docker Compose
+
+```sh
+$ cp .env.example .env
+$ nano .env  # fill in API_ID and API_HASH
+```
+
+First run — interactive authorization (Telethon will ask for your phone number and confirmation code):
+```sh
+$ docker compose run --rm hcleaner
+```
+
+Once authorized, `Cleaner.session` is saved locally. Start as a background service:
+```sh
+$ docker compose up -d
+```
+
 License
 ----
 
