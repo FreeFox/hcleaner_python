@@ -23,13 +23,12 @@ async def periodically():
             chat_id = msg['chat']
             message_id = msg['message']
             delta = utcnow - datetime.strptime(msg['date'], "%Y-%m-%d %H:%M:%S")
-            if delta.seconds > 30:
+            if delta.total_seconds() > 30:
                 await client.delete_messages(chat_id, message_id)
                 print(datetime.now(), 'Done!')
             else:
                 not_old_enough.append(msg)
-        messages_to_delete.clear()
-        messages_to_delete.extend(not_old_enough)
+        messages_to_delete[:] = not_old_enough
 
 
 async def main():
