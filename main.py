@@ -1,38 +1,55 @@
+import logging
 from datetime import datetime
 from telethon import TelegramClient, events
-from config import api_hash, api_id
+from telethon.errors import FloodWaitError
+from config import api_hash, api_id, BOT_IDS, COMMAND_PATTERN, DELETE_DELAY_SECONDS, CHECK_INTERVAL_SECONDS
 import argparse
 import asyncio
 from periodic import Periodic
+import db
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+)
+log = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--api_id", required=False, help="user api ID", type=str, default=api_id)
 parser.add_argument("--api_hash", required=False, help="user api Hash", type=str, default=api_hash)
 
 args = parser.parse_args()
-messages_to_delete = []
+
+db.init()
+messages_to_delete = db.load_all()
+log.info("Loaded %d pending message(s) from persistent queue", len(messages_to_delete))
 
 
 async def periodically():
     if len(messages_to_delete):
         not_old_enough = []
-        print("queue size: ", str(len(messages_to_delete)), " item(s)")
+        log.info("Queue size: %d item(s)", len(messages_to_delete))
         utcnow = datetime.utcnow()
         for msg in messages_to_delete:
             chat_id = msg['chat']
             message_id = msg['message']
             delta = utcnow - datetime.strptime(msg['date'], "%Y-%m-%d %H:%M:%S")
-            if delta.total_seconds() > 30:
-                await client.delete_messages(chat_id, message_id)
-                print(datetime.now(), 'Done!')
+            if delta.total_seconds() > DELETE_DELAY_SECONDS:
+                try:
+                    await client.delete_messages(chat_id, message_id)
+                    db.remove(message_id, chat_id)
+                    log.info("Deleted message %d from chat %d", message_id, chat_id)
+                except FloodWaitError as e:
+                    log.warning("FloodWait: retrying in %ds, message %d requeued", e.seconds, message_id)
+                    not_old_enough.append(msg)
+                    await asyncio.sleep(e.seconds)
             else:
                 not_old_enough.append(msg)
         messages_to_delete[:] = not_old_enough
 
 
 async def main():
-    p = Periodic(10, periodically)
+    p = Periodic(CHECK_INTERVAL_SECONDS, periodically)
     await p.start()
 
 
@@ -42,24 +59,28 @@ asyncio.set_event_loop(loop)
 client = TelegramClient("sessions/Cleaner", args.api_id, args.api_hash, loop=loop)
 
 
-@client.on(events.NewMessage(pattern=r'(?i)^\/(achievements|drochnut|topd|topdall|topdd|help|dice|craft|case|use|keys|shop|trade|me|bonuscode|inventory|newcase|rr|give|donate|dick|top)'))
+@client.on(events.NewMessage(pattern=COMMAND_PATTERN))
 async def user_command_handler(event):
-    messages_to_delete.append({
+    msg = {
         "message": event.message.id,
         "chat": event.chat_id,
-        "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S")
-    })
-    print("[New event] Queue size: ", str(len(messages_to_delete)), " item(s)")
+        "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    db.add(msg["message"], msg["chat"], msg["date"])
+    messages_to_delete.append(msg)
+    log.info("[user command] Queue size: %d item(s)", len(messages_to_delete))
 
 
-@client.on(events.NewMessage(from_users=[1303228016,539991741]))
+@client.on(events.NewMessage(from_users=BOT_IDS))
 async def bot_message_handler(event):
-    messages_to_delete.append({
+    msg = {
         "message": event.message.id,
         "chat": event.chat_id,
-        "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S")
-    })
-    print("[New event] Queue size: ", str(len(messages_to_delete)), " item(s)")
+        "date": event.message.date.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    db.add(msg["message"], msg["chat"], msg["date"])
+    messages_to_delete.append(msg)
+    log.info("[bot message] Queue size: %d item(s)", len(messages_to_delete))
 
 
 def run():
@@ -68,6 +89,6 @@ def run():
             client.start()
             client.run_until_disconnected()
         except ConnectionError: #catches the ConnectionError and starts the connections process again
-            print('ConnectionError. ХУЙ pУСНІ!')
+            log.error('ConnectionError. ХУЙ pУСНІ!')
 
 run()
