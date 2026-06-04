@@ -83,6 +83,13 @@ async def bot_message_handler(event):
     log.info("[bot message] Queue size: %d item(s)", len(messages_to_delete))
 
 
+@client.on(events.NewMessage(pattern=r'(?si).*голос.*'))
+async def golos_handler(event):
+    await asyncio.sleep(1)
+    await event.reply("гав")
+    log.info("[golos] replied in chat %d", event.chat_id)
+
+
 def run():
     while True:
         try:
