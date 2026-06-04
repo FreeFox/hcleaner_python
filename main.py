@@ -62,12 +62,12 @@ async def bot_message_handler(event):
     print("[New event] Queue size: ", str(len(messages_to_delete)), " item(s)")
 
 
-def test():
-    try:
-        client.start()
-        client.run_until_disconnected()
-    except ConnectionError: #catches the ConnectionError and starts the connections process again
-        print('ConnectionError. ХУЙ pУСНІ!')
-        test()
+def run():
+    while True:
+        try:
+            client.start()
+            client.run_until_disconnected()
+        except ConnectionError: #catches the ConnectionError and starts the connections process again
+            print('ConnectionError. ХУЙ pУСНІ!')
 
-test()
+run()
